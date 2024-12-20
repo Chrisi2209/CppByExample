@@ -3,15 +3,25 @@
 
 #include <iostream>
 #include <vector>
+#include <numeric>
 #include <limits>
 #include <algorithm>
 #include <iterator>
 #include <set>
 #include <thread>
 #include <chrono>
+#include <cassert>
+
+// generische Addition
+template <typename T, typename U>
+auto simple_plus(T lhs, U rhs) -> decltype(lhs + rhs)
+{
+    return lhs + rhs;
+}
 
 // bad practice to override for normal types like vectors because it could clash with other libs
 // better with own classes or use a named function
+
 template <typename T>
 std::ostream &operator<<(std::ostream &s, const std::vector<std::vector<T>> &triangle)
 {
@@ -22,8 +32,8 @@ std::ostream &operator<<(std::ostream &s, const std::vector<std::vector<T>> &tri
         // can also
         // std::copy(row.begin(), row.end(), std::ostream_iterator<T>(s, " "));
         std::ranges::copy(row, std::ostream_iterator<T>(s, " "));
-        // copy does essentially:
-        /*
+
+        /* // copy does essentially:
         std::ostream_iterator<T> it(s, " ");  // this it gets as a parameter
         for (auto cell : row)  // loops over container
         {  // when *it, you get a object that has the = operator overriden to add the object to the stream
@@ -66,9 +76,54 @@ auto generate_triangle(int rows)
         triangle.push_back(data);
         */
         // triangle.push_back(get_next_row(triangle.back())); // better
-        triangle.emplace_back(get_next_row(triangle.back())); // does not do unnecesary copies of the vector (even better9)
+        triangle.emplace_back(get_next_row(triangle.back())); // does not do unnecesary copies of the vector (even better)
     }
     return triangle;
+}
+
+void show_vectors(std::ostream &s,
+                  const std::vector<std::vector<int>> &v)
+{
+    size_t final_row_size = v.back().size();
+    std::string spaces(final_row_size * 3, ' ');
+    for (const auto &row : v)
+    {
+        s << spaces;
+        if (spaces.size() > 3)
+            spaces.resize(spaces.size() - 3);
+        for (const auto &data : row)
+        {
+            s << std::format("{: ^{}}", data, 6);
+        }
+        s << '\n';
+    }
+}
+
+void check_properties(
+    const std::vector<std::vector<int>> &triangle)
+{
+    for (const auto &row : triangle)
+    {
+        assert(row.front() == 1);
+        assert(row.back() == 1);
+    }
+
+    size_t row_number = 1;
+    for (const auto &row : triangle)
+    {
+        assert(row.front() == 1);
+        assert(row.back() == 1);
+        assert(row.size() == row_number++);
+    }
+
+    int expected_total = 1;
+    for (const auto &row : triangle)
+    {
+        assert(std::accumulate(row.begin(),
+                               row.end(),
+                               0) == expected_total);
+        expected_total *= 2;
+    }
 }
 
 auto main() -> int
@@ -85,7 +140,10 @@ auto main() -> int
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     */
-    std::cout << triangle;
+    // auto does_not_compile = std::format("I am not a number {:f}", 3);
+
+    show_vectors(std::cout, triangle);
+    check_properties(triangle);
 
     return 0;
 }
